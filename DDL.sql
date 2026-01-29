@@ -561,3 +561,343 @@ select * from doit_float where col_1 = 0.7;
 
 -- 암시적 형 변환으로 계산 결과가 출력된 예
 select 10/3;
+
+-- 문자열 데이터의 길이와 크기 확인
+USE doitsql;
+create table doit_char_varchar(
+col_1 char(5),
+col_2 varchar(5)
+);
+
+insert into doit_char_varchar values('12345', '12345');
+insert into doit_char_varchar values('ABCDE', 'ABCDE');
+insert into doit_char_varchar values('가나다라마', '가나다라마');
+insert into doit_char_varchar values('hello', '안녕하세요');
+insert into doit_char_varchar values('安寧安寧安', '安寧安寧安');
+
+select
+col_1, char_length(col_1) as char_length, length(col_1) as char_byte,
+col_2, char_length(col_2) as char_length, length(col_2) as char_byte
+from doit_char_varchar;
+
+-- 저장공간을 초과한 예
+USE doitsql;
+
+-- 생성 성공
+create table doit_table_byte(
+col_1 varchar(16383)
+);
+drop table doit_table_byte;
+
+-- 생성 실패
+create table doit_table_byte(
+col_1 varchar(16383),
+col_2 varchar(10)
+);
+
+-- MYSQL의 문자집합 확인
+show character set;
+
+-- 콜레이션에 따른 정렬순서 비교를 위한 테이블 생성
+create table doit_collation(
+
+col_latin1_general_ci varchar(10) collate latin1_general_ci,
+col_latin1_general_cs varchar(10) collate latin1_general_cs, -- 콜레이션 설정
+col_latin1_bin varchar(10) collate latin1_bin,
+col_latin7_general_ci varchar(10) collate latin7_general_ci
+);
+insert into doit_collation values('a', 'a', 'a', 'a');
+insert into doit_collation values('b', 'b', 'b', 'b');
+insert into doit_collation values('A', 'A', 'A', 'A');
+insert into doit_collation values('B', 'B', 'B', 'B');
+insert into doit_collation values('*', '*', '*', '*'); -- 여러 유형의 데이터를 테이블에 삽입
+insert into doit_collation values('_', '_', '_', '_');
+insert into doit_collation values('!', '!', '!', '!');
+insert into doit_collation values('1', '1', '1', '1');
+insert into doit_collation values('2', '2', '2', '2');
+
+-- 콜레이션에 따른 정렬순서 확인
+select col_latin1_general_ci from doit_collation order by col_latin1_general_ci;
+select col_latin1_general_cs from doit_collation order by col_latin1_general_cs;
+select col_latin1_bin from doit_collation order by col_latin1_bin;
+select col_latin7_general_ci from doit_collation order by col_latin7_general_ci;
+
+-- 데이터 유형에 따른 현재 시간 조회
+create table date_table(
+justdate date,
+justtime time,
+justdatetime datetime,
+justtimestamp timestamp);
+
+insert into date_table values (now(), now(), now(), now());
+
+select *from date_table;
+
+-- world 데이터베이스의 country 테이블에서 code가 kor인 데이터를 조회하는 쿼리
+use world;
+select * from country where code = 'kor';
+
+-- world 데이터베이스의 country 테이블에서 region열에 asia라는 글자를 포함하는 데이터를 조회하는 쿼리
+select * from country where region like '%asia%';
+
+-- world 데이터베이스의 country 테이블에서 name 열의 데이터가 5글자인 데이터를 조회하는 쿼리
+select * from country where name like '_____';
+
+-- world 데이터베이스의 country 테이블에서 Population열을 숫자가 높은 순으로 정렬해 조회하는 쿼리
+select * from country where population order by population desc;
+
+-- world 데이터베이스의 country 테이블에서 lifeexpectancy열의 데이터가 60 이상 70 이하인 데이터를 조회하는 쿼리
+select * from country where lifeexpectancy between 60 and 70;
+
+-- world 데이터베이스의 country 테이블에서 region열의 데이터가 asia를 포함하지 않으며 name열에서 g또는 u글자를 포함하는 데이터를 population열의 내림차순으로 조회하는 쿼리
+select * from country where region not like '%asia%' and name regexp '[g, u]'
+order by population desc;
+
+-- world 데이터베이스에서 country 테이블에서 region 그룹별로 개수를 구하고, 개수가 높은 순서데로 조회하는 쿼리
+select region, count(*) as cnt from country
+group by region order by cnt desc;
+
+-- 내부 조인한 테이블에서 조건에 맞는 데이터 조회
+use sakila;
+
+select
+ a.customer_id, a.store_id, a.first_name, a.last_name, a.email, a.address_id
+ as a_address_id,
+	b.address_id as b_address_id, b.address, b.district, b.city_id, b.postal_code,
+b.phone, b.location
+from customer as a
+	inner join address as b on a.address_id = b.address_id
+where a.first_name = 'rosa';
+
+-- 열 이름이 유일하지 않은 경우
+select
+	address_id
+from customer as a
+	inner join address as b on a.address_id = b.address_id
+where a.first_name = 'rosa';
+
+-- 2개의 조인 조건으로 조인한 테이블에서 조건에 맞는 데이터 조회
+select
+	a.customer_id, a.first_name, a.last_name,
+    b.address_id, b.address, b.district, b.postal_code
+from customer as a
+	inner join address as b on a.address_id = b.address_id and a.create_date = 
+b.last_update
+where a.first_name = 'rosa';
+
+-- 3개의 테이블을 조인한 테이블에서 조건에 맞는 데이터 조회
+select
+	a.customer_id, a.first_name, a.last_name,
+    b.address_id, b.address, b.district, b.postal_code,
+    c.city_id, c.city
+from customer as a
+	inner join address as b on a.address_id = b.address_id
+    inner join city as c on b.city_id = c.city_id
+where a.first_name = 'rosa';
+
+-- LEFT OUTER JOIN한 결과 조회
+select
+	a.address, a.address_id as a_address_id,
+	b.address_id as b_address_id, b.store_id
+from address as a
+	left outer join store as b on a.address_id = b.address_id;
+    
+-- LEFT OUTER JOIN으로 조회한 결과에서 NULL만 조회
+select
+	a.address, a.address_id as a_address_id,
+    b.address_id as b_address_id, b.store_id
+from address as a
+	left outer join store as b on a.address_id = b.address_id
+where b.address_id is null;
+
+-- RIGHT OUTER JOIN한 결과조회
+
+select
+	a.address, a.address_id as a_address_id,
+    b.address_id as b_address_id, b.store_id
+from address as a
+	right outer join store as b on a.address_id = b.address_id;
+    
+-- RIGHT OUTER JOIN으로 조회한 결과에서 NULL만 조회
+select
+	a.address_id as a_address_id, a.store_id,
+    b.address, b.address_id as b_address_id
+from store as a
+	right outer join address as b on a.address_id = b.address_id
+where a.address_id is null;
+
+-- FULL OUTER JOIN한 결과 조회
+select
+	a.address_id as a_address_id, a_store_id,
+    b.address, b.address_id as b_address_id
+from store as a
+	left outer join address as b on a.address_id = b.address_id
+    
+union
+
+select
+	a.address_id as a_address_id, a_store_id,
+    b.address, b.address_id as b_address_id
+from store as a
+	right outer join address as b on a.address_id = b.address_id;
+    
+-- full outer join으로 조회한 결과에서 null만 조회
+select
+	a.address_id as a_address_id, a.store_id,
+    b.address, b.address_id as b_address_id
+from store as a
+	left outer join address as b on a.address_id = b.address_id
+where b.address_id is null
+
+union
+
+select
+	a.address_id as a_address_id, a.store_id,
+    b.address, b.address_id as b_address_id
+from store as a
+	right outer join address as b on a.address_id = b.address_id
+where a.address_id is null;
+
+-- 샘플 데이터 생성
+create table doit_cross1(num int);
+create table doit_cross2(name varchar(10));
+
+insert into doit_cross1 values (1), (2), (3);
+insert into doit_cross2 values ('do'), ('it'), ('sql');
+
+-- cross join을 적용한 쿼리
+select 
+	a.num, b.name
+from doit_cross1 as a
+	cross join doit_cross2 as b
+order by a.num;
+
+-- where 절을 사용한 cross join
+select
+ a.num, b.name
+from doit_cross1 as a
+	cross join doit_cross2 as b
+where a.num = 1;
+
+-- 셀프조인의 경우 별칭을 사용하지 않으면 오류발생
+-- self join을 적용한 쿼리 1
+select a.customer_id as a_customer_id, b.customer_id as b_customer_id
+from customer as a
+	inner join customer as b on a.customer_id = b.customer_id;
+    
+-- self join을 적용한 쿼리 2
+select
+	a.payment_id, a.amount, b.payment_id, b.amount, b.amount - a.amount as profit_amount
+    from payment as a
+		left outer join payment as b  on a.payment_id = b.payment_id -1;
+        
+-- 단일 행 서브쿼리 적용
+select * from customer
+where customer_id = (select customer_id from customer where first_name = 'rosa');
+
+-- 잘못된 단일 행 서브쿼리 적용시 오류 발생 예
+select * from customer
+where customer_id = (select customer_id from customer where first_name in ('rosa', 'ana'));
+
+-- in을 활용한 다중 행 서브쿼리 적용 1
+select * from customer
+where first_name in('rosa', 'ana');
+
+-- in을 활용한 다중 행 서브쿼리 적용 2
+select * from customer
+where customer_id in (select customer_id from customer where first_name in ('rosa', 'ana'));
+
+-- 테이블 3개를 조인하는 쿼리
+select
+	a.film_id, a.title
+from film as a
+	inner join film_category as b on a.film_id = b.film_id
+	inner join category as c on b.category_id = c.category_id
+where c.name = 'action';
+
+-- in을 활용한 서브쿼리 적용
+select
+	film_id, title
+from film
+where film_id in(
+	select a.film_id
+    from film_category as a
+		inner join category as b on a.category_id = b.category_id
+	where b.name = 'action');
+
+-- not in을 활용한 서브 쿼리 적용
+select
+	film_id, title
+from film
+where film_id not in(
+	select a.film_id
+    from film_category as a
+		inner join category as b on a.category_id = b.category_id
+	where b.name = 'action');
+    
+-- =any를 활용한 서브쿼리 적용
+select * from customer
+where customer_id = any (select customer_id from customer where first_name in 
+('rosa', 'ana'));
+
+-- <any를 활용한 서브쿼리 적용
+select * from customer
+where customer_id < any (select customer_id from customer where first_name in ('rosa', 'ana'));
+
+-- >any를 활용한 서브쿼리 적용
+select * from customer
+where customer_id > any (select customer_id from customer where first_name in ('rosa', 'ana'));
+
+-- exists를 활용한 서브쿼리 적용: True를 반환하는 경우
+select * from customer
+where exists (select customer_id from customer where first_name in('rosa', 'ana'));
+
+-- exists를 활용한 서브쿼리 적용: false를 반환하는 경우
+select * from customer
+where exists(select customer_id from customer where first_name in ('kang'));
+
+-- not exists를 활용한 서브쿼리 적용: True를 반환하는 경우
+select * from customer
+where not exists(select customer_id from customer where first_name in ('kang'));
+
+-- all을 활용한 서브 쿼리 적용
+select * from customer
+where customer_id = all(select customer_id from customer where first_name in ('rosa', 'ana'));
+
+-- 테이블 조인
+select
+	a.film_id, a.title, a.special_features, c.name
+from film as a
+	inner join film_category as b on a.film_id = b.film_id
+    inner join category as c on b.category_id = c.category_id
+where a.film_id > 10 and a.film_id < 20;
+
+-- from 절에 서브쿼리 적용
+select 
+	a.film_id, a.title, a.special_features, x.name
+from film as a
+	inner join(
+    select
+		b.film_id, c.name
+	from film_category as b
+		inner join category as c on b.category_id = c.category_id
+	where b.film_id > 10 and b.film_id < 20) as x on a.film_id = x.film_id;
+        
+-- 테이블 조인
+select
+	a.film_id, a.title, a.special_features, c.name
+    
+from film as a
+	inner join film_category as b on a.film_id = b.film_id
+    inner join category as c on b.category_id = c.category_id
+
+where a.film_id  and a.film_id < 20;
+
+-- select 절에 서브쿼리 적용
+select
+	a.film_id, a.title, a.special_features, (select c.name from film_category as
+    b inner join category as c on b.category_id = c.category_id where a.film_id =
+    b.film_id) as name
+from film as a
+where a.film_id > 10 and a.film_id <20;
+    
