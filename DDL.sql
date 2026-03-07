@@ -900,4 +900,640 @@ select
     b.film_id) as name
 from film as a
 where a.film_id > 10 and a.film_id <20;
+
+-- 일반 CTE로 데이터 조회
+with cte_customer(customer_id, first_name, email)
+as
+(
+	select customer_id, first_name, email from customer where customer_id >= 10
+    and customer_id < 100
+)
+
+select * from cte_customer;
+
+-- 일반 CTE에서 열 불일치로 인한 오류 발생 예
+with cte_customer (customer_id, first_name, email)
+as
+( 
+	select customer_id, first_name, last_name, email from customer where customer_id >= 10
+    and customer_id < 100
+)
+
+select * from cte_customer;
+
+-- union all로 cte 결합
+with cte_customer (customer_id, first_name, email)
+as
+( 
+	select customer_id, first_name, email from customer where customer_id >= 10
+    and customer_id <= 15
+    union all
+    select customer_id, first_name, email from customer where customer_id >= 25
+    and customer_id <=30
+)
+
+select * from cte_customer;
+
+-- intersect로 cte 결합
+WITH cte_customer (customer_id, first_name, email)
+AS
+(
+	SELECT customer_id, first_name, email FROM customer WHERE customer_id >= 10 AND customer_id <= 15
+	
+	INTERSECT
+	
+	SELECT customer_id, first_name, email FROM customer WHERE customer_id >= 12 AND customer_id <= 20
+)
+
+SELECT * FROM cte_customer;
+
+-- EXCEPT으로 CTE 결합해보기1
+with cte_customer(customer_id, first_name, email)
+AS
+(
+	SELECT customer_id, first_name, email FROM customer WHERE customer_id >=10
+    And customer_id<=15
+	EXCEPT
+    SELECT customer_id, first_name, email From customer Where customer_id>=12
+    AND customer_id<=20
+    )
     
+   SELECT * FROM cte_customer; 
+
+-- EXCEPT으로 CTE 결합해보기2   
+   with cte_customer(customer_id, first_name, email)
+AS
+(
+	SELECT customer_id, first_name, email FROM customer WHERE customer_id >=12
+    And customer_id<=20
+	EXCEPT
+    SELECT customer_id, first_name, email From customer Where customer_id>=10
+    AND customer_id<=15
+    )
+    
+   SELECT * FROM cte_customer; 
+   
+   -- 재귀 CTE로 피보나치 수열 생성
+   WITH RECURSIVE fibonacci_number(n, fibonacci_n, next_fibonacci_n)
+   AS(
+		SELECT 1, 0, 1
+        UNION ALL
+        SELECT n+1, next_fibonacci_n, fibonacci_n + next_fibonacci_n
+				FROM fibonacci_number WHERE n <20
+)
+SELECT * FROM fibonacci_number;
+
+SELECT a.*, b.*
+FROM country AS a
+	INNER JOIN city AS b ON a.Code = b.CountryCode
+WHERE a.name = 'United States';
+
+SELECT
+	a.Name AS city_name, a.CountryCode, a.District, a.Population,
+    b.name AS country_name, b.Population, b.LifeExpectancy, b.GNP
+FROM city AS a
+	INNER JOIN country AS b ON a.CountryCode = b.code
+    ORDER BY a.Population DESC LIMIT 10;
+    
+SELECT
+	a.Name AS city_name, a.CountryCode, a.District, a.Population,
+    b.name AS country_name, b.Population, b.LifeExpectancy, b.GNP
+FROM(
+SELECT
+	Name, CountryCode, District, Population
+From city
+ORDER BY Population DESC LIMIT 10
+) AS a
+ INNER JOIN country AS b ON a.CountryCode = b.code;
+ 
+ SELECT b.*
+ FROM countrylanguage AS a
+	INNER JOIN country AS b ON a.CountryCode = b.Code
+WHERE a.Language = 'EngLish';
+
+SELECT
+	a.first_name, a.last_name, c.title, c.release_year, e.name
+    AS category_name
+FROM actor AS a
+	INNER JOIN film_actor AS b ON a.actor_id=b.actor_id
+    INNER JOIN film AS c ON b.film_id = c.film_id
+    INNER JOIN film_category AS d ON c.film_id = d.film_id
+    INNER JOIN category AS e ON d.category_id = e.category_id
+WHERE e.name = 'Action'
+ORDER BY title;
+
+WITH cte_film(film_id, title, category_name)
+AS (
+SELECT a.film_id, a.title, c.name as category_name
+FRom film as a
+		INNER JOIN film_category AS b ON a.film_id = b.film_id
+        INNER JOIN category AS c ON b.category_id = c.category_id), cte_payment (customer_id, amount, film_id)
+AS (
+SELECT a.customer_id, b.amount, c.film_id
+FROM rental AS a
+INNER JOIN payment AS b on a.rental_id = b.rental_id
+INNER JOIN inventory AS c ON a.inventory_id = c.inventory_id
+)
+
+SELECT
+	a.customer_id, a.first_name, a.last_name,
+    c.category_name,
+    COUNT(*) AS rental_count,
+    Sum(b.amount) AS amount
+FROM customer AS a
+	INNER JOIN cte_payment AS b on a.customer_id = b.customer_id
+    INNER JOIN cte_film AS c ON b.film_id = c.film_id
+GROUP BY a.customer_id, a.first_name, a.last_name, c.category_name
+ORDER BY a.customer_id;
+CREATE TABLE emp
+(employee_id int NOT NULL PRIMARY KEY,
+employee_name varchar(50) NOT NULL,
+manager_id int NULL
+);
+
+
+INSERT INTO emp VALUES (101, '이지연', NULL);
+INSERT INTO emp VALUES (102, '강정훈', 101);
+INSERT INTO emp VALUES (103, '임도환', 101);
+INSERT INTO emp VALUES (104, '민가영', 102);
+INSERT INTO emp VALUES (105, '김민찬', 102);
+INSERT INTO emp VALUES (106, '장민선', 103);
+INSERT INTO emp VALUES (107, '김시영', 103);
+INSERT INTO emp VALUES (108, '이재윤', 105);
+INSERT INTO emp VALUES (109, '오하나', 105);
+INSERT INTO emp VALUES (110, '심성우', 106);
+
+WITH RECURSIVE cte_emp(employee_id, employee_name, manager_id, employee_level)
+AS 
+(
+    SELECT
+        employee_id, employee_name, manager_id, 1 AS employee_level
+    FROM emp
+    WHERE manager_id IS NULL
+
+    UNION ALL
+
+    SELECT
+        e.employee_id, e.employee_name, e.manager_id, r.employee_level + 1
+    FROM emp AS e
+    INNER JOIN cte_emp AS r ON e.manager_id = r.employee_id
+)
+    
+SELECT
+    employee_name, 
+    employee_level,
+    (SELECT employee_name FROM emp WHERE employee_id = cte_emp.manager_id) AS Manager
+FROM cte_emp
+ORDER BY employee_level, employee_id;
+
+--  CONCAT 함수로 열 이름과 문자열 연결
+select concat(first_name,',', last_name) AS customer_name from customer;
+
+-- CONCAT_WS 함수로 구분자 지정
+select concat_ws(',', first_name, last_name, email) AS customer_name From customer;
+
+-- CONCAT함수로 NULL과 열 이름 연결
+select concat(Null,',', last_name) AS customer_name from customer;
+
+-- CONCAT_WS인자로 NULL이 있는 겅우
+select concat_ws(',', first_name,Null,last_name) as customer_name from customer;
+
+-- 문자열을 부호 없는 정수형으로 변경
+select
+4/'2',
+4 /2,
+4/cast('2' as unsigned);
+
+-- NOW함수로 현재 날짜와 시간 출력
+select now();
+
+-- CAST함수로 날짜형을 숫자형으로 변환
+select cast(now() as signed);
+
+-- CAST함수로 숫자형을 날짜형으로 전환
+select cast(20230819 as date);
+
+-- CAST함수로 숫자형을 문자열로 변환
+select cast(20230819 as char);
+
+-- CONVERT함수로 날짜형을 정수형으로 변환
+select convert(now(),signed);
+
+-- CONVERT함수로 숫자형을 날짜형으로 변환
+select convert(20230819, DATE);
+
+-- CHAR로 데이터 길이 지정
+select convert(20230819, char(5));
+
+-- 오버플로 발생 예
+SELECT 9223372036854775807 + 1;
+
+-- CAST함수로 오버플로 방지
+SELECT CAST(9223372036854775807 AS unsigned)+1;
+
+-- CONVERT함수로 오버플로 방지
+SELECT convert(9223372036854775807 , unsigned)+1;
+
+CREATE TABLE doit_null(
+col_1 INT,
+col_2 VARCHAR(10),
+col_3 VARCHAR(10),
+col_4 VARCHAR(10),
+col_5 VARCHAR(10)
+);
+
+insert into doit_null values (1, NULL, 'col_3', 'col_4', 'col_5');
+insert into doit_null values (2, NULL, 'col_3', 'col_4', 'col_5');
+insert into doit_null values (2, NULL, NULL, NULL, 'col_5');
+insert into doit_null values (3, NULL, NULL, NULL, NULL);
+
+-- IFNULL함수로 col_2열의 NULL대체
+select col_1, ifnull(col_2, '') AS col_2, col_3, col_4, col_5
+FROM doit_null WHERE col_1 = 1;
+
+-- IFNULL 함수로 col_3열의 NULL대체
+select col_1, ifnull(col_2, col_3) AS col_2, col_3, col_4, col_5
+FROM doit_null WHERE col_1 = 1;
+
+-- COALESCE 함수로 NULL을 다른 데이터로 대체: 마지막 인자에 데이터가 있는 경우
+select col_1, coalesce(col_2, col_3, col_4, col_5)
+FROM doit_null WHERE col_1 = 2;
+
+-- COALESCE 함수로 NULL을 다른 데이터로 대체: 마지막 인자까지도 NULL이 있는 경우
+select col_1, coalesce(col_2, col_3, col_4, col_5)
+FROM doit_null WHERE col_1 = 3;
+
+
+-- LOWER 함수로 소문자를, UPPER 함수로 대문자로 변경
+SELECT 'Do it SQL', LOWER('DO it! SQL'), UPPER('Do it! SQL');
+
+-- LOWER 함수로 소문자를, UPPER 함수로 대문자로 변경
+SELECT email, LOWER(email), UPPER(email) from customer;
+
+-- LTRIM함수로 왼쪽 공백 제거
+select '    DO it! MYSQL', ltrim('    DO it! MYSQL');
+
+-- RTRIM함수로 오른쪽 공백 제거
+select 'DO it! MYSQL   ', rtrim('DO it! MYSQL   ');
+
+-- TRIM 함수로 양쪽 문자 제거
+select trim(both '#' from '#    DO it! MYSQL    #');
+
+-- LENGTH 함수로 문자열의 크기 반환
+select length('DO it! MYSQL'), length('두잇 마이에스큐엘');
+
+-- LENGTH로 다양한 문자의 크기 반환
+select length('A'), length('강'), length('漢'), length('◁'), length(' ');
+
+-- CHAR_LENGTH 함수로 문자열의 개수 반환
+select char_length('DO it! MYSQL'), char_length('두잇 마이에스큐엘');
+
+-- LENGTH와 CHAR_LENGTH 함수에 열 이름 전달
+SELECT first_name, LENGTH(first_name), CHAR_LENGTH(first_name) from customer;
+
+-- POSITION함수로 특정 문자까지의 크기 반환
+select 'DO it! SQL', position('!' in 'DO it! MYSQL');
+
+-- 탐색문자가 없는 경우
+select 'DO it! SQL', position('#' in 'DO it! MYSQL');
+
+-- LEFT와 RIGHT 함수로 왼쪼과 오른쪽 2개의 문자열 반환
+select 'DO it! MYSQL', LEFT('DO it! MYSQL',2), right('DO it! MYSQL',2);
+
+-- SUBSTRING함수로 지정한 범위의 문자열 반환
+select 'DO it! MYSQL', substring('DO it! MYSQL', 4, 2);
+
+-- SUBSTRING함수에 열 이름 전달
+SELECT first_name, substring(first_name, 2, 3) from customer;
+
+-- SUBSTRING과 POSITOIN 함수 조합
+select substring('abc@email.com', 1 , position('@' in 'abc@email.com')-1);
+
+-- REPLACE함수로 문자 변경
+SELECT first_name, replace(first_name, 'A', 'C')
+from customer where first_name like 'A%';
+
+-- REPEAT함수로 문자반복
+select repeat('0', 10);
+
+-- REPEAT과 REPLACE 함수 조합
+SELECT first_name, replace(first_name, 'A', repeat('C',10))
+from customer where first_name like '%A%';
+
+-- SPACE 함수로 공백문자 반복
+SELECT CONCAT(first_name, space(10), last_name) from customer;
+
+-- REVERSE 함수로 문자열을 역순으로 반환
+SELECT 'DO it! SQL', REVERSE('DO it! MYSQL');
+
+-- REVERSE 함수와 다른 여러 함수 조합
+WITH ip_list(ip)
+AS(
+	SELECT '192.168.0.1' UNIOn all
+    SELECT '10.6.100.99' UNIOn all
+    SELECT '8.8.8.8' UNIOn all
+    SELECT '192.200.212.113'
+    )
+    select ip, substring(ip, 1, char_length(ip) - position('.' IN reverse(ip)))
+    from ip_list;
+    
+-- STRCMP 함수로 두 문자열을 비교: 동일한경우
+select strcmp('DO it! MYSQL', 'DO it! MYSQL');
+
+-- STRCMP 함수로 두 문자열을 비교: 동일하지 않은 경우
+select strcmp('DO it! MYSQL', 'DO it! MYSQL!');
+
+-- 날짜함수로 현재 날짜나 시간 반환
+select current_date(), current_time(),current_timestamp(), now();
+
+-- 정밀한 시각을 반환
+select current_date(), current_time(3),current_timestamp(3), now(3);
+
+-- UTC_DATE,UTC_TIME,UTC_TIMESTAMP 함수로 세계 표준 날짜나 시간 반환
+select current_timestamp(3), utc_date(), utc_time(3), utc_timestamp(3);
+
+-- DATE_ADD함수로 1년 증가한 날짜 반환
+select now(), date_add(now(), interval 1 year);
+
+-- DATE_ADD함수로 1년 감소한 날짜 반환
+select now(), date_add(now(), interval -1 year);
+
+-- DATE_SUB함수로ㅗ 1년 감소한 날짜 반환
+select now(), date_sub(now(), interval +1 year), date_sub(now(), interval -1 year);
+
+-- DATEDIFF함수로 날짜 간의 일수 차 반환
+select datediff('2023-12-31 23:59:59.9999999', '2023-01-01 00:00:00.0000000');
+
+-- TIMESTAMPDIFF함수로 날짜 간의 일수 차 반환
+select TIMESTAMPDIFf(month, '2023-12-31 23:59:59.9999999', '2023-01-01 00:00:00.0000000');
+
+-- DAYNAME함수로 특정 날짜의 요일 반환
+select dayname('2023-08-20');
+
+-- YEAR, MONTH, WEEK, DAY함수로 연, 월, 주, 일을 별도의 값으로 반환
+select
+	year('2023-08-20'),
+	month('2023-08-20'),
+	week('2023-08-20'),
+	day('2023-08-20');
+    
+    
+-- DATE_FORMAT 함수로 날짜 형식 변경
+select date_format('2023-08-20 20:23:01', '%m/%d/%y');
+
+-- GET_FORMAT 함수로 국가나 지역별 날짜 형식 확인
+
+select get_format(date,'usa') as usa,
+get_format(date, 'jis') as jis,
+get_format(date, 'eur') as europe,
+get_format(date, 'iso') as iso,
+get_format(date, 'internal') as internal;
+
+-- DATE_FORMAT과 GET_FORMAT 함수 조합
+select date_format(now(), get_format(DATE, 'usa')) as usa,
+date_format(now(), get_format(DATE, 'jis')) as jis,
+date_format(now(), get_format(DATE, 'eur')) as europe,
+date_format(now(), get_format(DATE, 'iso')) as iso,
+date_format(now(), get_format(DATE, 'internal')) as internal;
+
+-- count 함수로 데이터 개수 집계
+select count(*) from customer; 
+
+-- count 함수와 GROUP BY절 조합
+select store_id, count(*) as cnt from customer group by store_id;
+
+-- count 함수와 GROUP BY절 조합 : 열 2개 활용
+select store_id, active, count(*) as cnt from customer group by store_id, active;
+
+-- NULL을 제외한 집계 확인
+SELECT count(*) AS all_cnt,
+COUNT(address2) AS ex_null from address;
+
+
+-- COUNT함수와 DISTINCT문 조합
+select count(*), count(store_id), count(distinct store_id) from customer; 
+
+-- SUM함수로 amount열의 데이터 합산
+select sum(amount) from payment;
+
+-- SUM함수로 GROUP절 조합
+select customer_id, sum(amount) from payment group by customer_id;
+
+-- 암시적 형 변환으로 오버플로 없이 합산 결과를 반환
+create table doit_overflow(
+col_1 int,
+col_2 int,
+col_3 int
+);
+insert into doit_overflow values (1000000000, 1000000000, 1000000000);
+insert into doit_overflow values (1000000000, 1000000000, 1000000000);
+insert into doit_overflow values (1000000000, 1000000000, 1000000000);
+
+select sum(col_1) from doit_overflow;
+
+-- avg 함수로 amount열의 데이터의 평균 계산
+select avg(amount) from payment;
+
+-- AVG함수로 GROUP BY절 조합
+select customer_id, AVG(amount) from payment group by customer_id;
+
+-- MIN과 MAX 함수로 amount열의 최솟값과 최댓값 조회
+select min(amount), max(amount) from payment;
+
+-- MIN과 MAX함수 그리고 GROUP BY절 조합
+select customer_id, min(amount), max(amount) from payment group by customer_id;
+
+-- ROLLUP 함수로 부분합 계산
+
+SELECT customer_id, staff_id, sum(amount)
+from payment
+group by customer_id, staff_id with rollup;
+
+-- STDDEV와 STDDEV_SAMP함수로 표준편차 계산
+select stddev(amount), stddev_samp(amount) from payment;
+
+-- ABS함수에 입력한 숫자를 절댓값으로 반환
+select abs(-1.0), abs(0.0), abs(1.0);
+
+-- ABS함수에 입력한 수식의 결과를 절댓값으로 반환
+select a.amount - b.amount as amount, ABS(a.amount - b.amount) as abs_amount
+from payment as a
+	inner join payment as b on a.payment_id = b.payment_id-1;
+    
+-- 암시적 형 변환으로 오버플로 없이 절댓값을 반환
+select abs(-2147483648);
+
+-- SIGN 함수로 입력한 숫자가 양수, 음수,0인지를 판단
+select sign(-256), sign(0), sign(256);
+
+-- SIGN함수로 수식의 결과가 양수, 음수, 0인지를 판단
+select a.amount-b.amount as amount, sign(a.amount-b.amount) as abs_amount
+from payment as a
+	inner join payment as b on a.payment_id = b.payment_id-1;
+    
+-- CEILING 함수로 천장값 반환
+select ceiling(2.4), ceiling(-2.4), ceiling(0.0);
+
+-- FLOOR 함수로 천장값 반환
+select FLOOR(2.4), FLOOR(-2.4), FLOOR(0.0);
+
+-- ROUND함수로 소수점 셋째자리까지 반올림
+select round(99.9994, 3), round(99.9995, 3);
+
+-- ROUND함수로 소수와 정수를 따로 반올림
+select round(234.4545, 2), round(234.4545, -2);
+
+-- 정수 부분의 길이보다 큰 자릿수를 입력한 경우
+select round(748.58, -1);
+select round(748.58, -2);
+select round(748.58, -4);
+
+-- LOG함수로 로그 10을 계산
+select log(10);
+
+-- LOG함수로 로그 10의 5를 계산
+select log(10, 5);
+
+-- EXP함수로 지수 1.0을 계산
+select exp(1.0);
+
+-- EXP함수로 지수 10을 계산
+select exp(10);
+
+-- LOG함수와 EXP함수로 결과 확인
+select exp(log(20)), log(exp(20));
+
+-- power함수로 거듭제곱 계산
+select power(2,3), power(2,10), power(2.0, 3);
+
+-- sqrt함수로 제곱근 계산
+select sqrt(1.00), sqrt(10.00);
+
+-- rand함수로 난수 계산
+select rand(100), rand(), rand();
+
+-- 인수가 없는 rand함수로 난수 계산
+delimiter $$
+create procedure rnd()
+begin
+declare counter int;
+set counter = 1;
+
+while counter <5 do
+	select rand() random_number;
+    set counter = counter +1;
+end while;
+end $$
+
+delimiter ;
+call rnd();
+
+-- COS함수 계산
+select cos(14.78);
+
+-- SIN함수 계산
+select sin(45.175643);
+
+-- TAN함수 계산
+select TAN(pi()/2), tan(.45);
+
+-- ATAN함수 계산
+SELECT ATAN(45.87) AS atanalc1,
+ATAN(-181.01) AS atancalc2,
+ATAN(0) AS atanCalc3,
+ATAN(0.1472738) AS atanCalc4,
+ATAN(197.1099392) AS atanCalc5;
+
+-- ROW_NUMBER 함수로 순위 부여
+
+SELECT ROW_NUMBER() OVER(ORDER by amount desc) as num, customer_id, amount
+
+from(
+	select customer_id, sum(amount) as amount
+    from payment group by customer_id) as x;
+    
+    -- ROW_NUMBER 함수로 순위 부여
+
+-- 내림차순 정렬한 결과에 ROW_NUMBER함수로 순위 부여
+SELECT ROW_NUMBER() OVER(ORDER by amount desc, customer_id DESC) as num, customer_id, amount
+
+from(
+	select customer_id, sum(amount) as amount
+    from payment group by customer_id) as x;
+    
+--  PATRTITION BY 절로 사용해 그룹별 순위 부여
+
+SELECT staff_id,
+ ROW_NUMBER() OVER(partition by staff_id ORDER by amount desc, customer_id asc) as num, customer_id, amount
+
+from(
+	select customer_id,staff_id, sum(amount) as amount
+    from payment group by customer_id, staff_id) as x;
+    
+-- rank 함수로 순위 부여
+SELECT rank() OVER(ORDER by amount desc)as num, customer_id, amount
+
+from(
+	select customer_id, sum(amount) as amount
+    from payment group by customer_id) as x; 
+
+-- DENCE_RANK 함수로 순위 부여
+SELECT dense_rank() OVER(ORDER by amount desc)as num, customer_id, amount
+
+from(
+	select customer_id, sum(amount) as amount
+    from payment group by customer_id) as x; 
+ -- 내림차순으로 정렬한 결과에 NTILE함수로 순위 부여   
+SELECT NTILE(100) OVER(ORDER by amount desc)as num, customer_id, amount
+
+from(
+	select customer_id, sum(amount) as amount
+    from payment group by customer_id) as x; 
+    
+-- LAG와 LEAD함수로 앞뒤 행 참조
+
+SELECT x.payment_date,
+ Lag(x.amount) over(order by x.payment_date asc) as lag_amount, amount,
+ lead(x.amount) over(order by x.payment_date asc) as lead_amount
+ from(
+	select date_format(payment_date, '%y-%m-%d') as payment_date,
+    sum(amount) as amount
+    from payment group by date_format(payment_date, '%y-%m-%d')) as x
+order by x.payment_date;
+
+-- LAG와 LEAD함수로 2칸씩 앞뒤 행 참조
+
+SELECT x.payment_date,
+ Lag(x.amount, 2) over(order by x.payment_date asc) as lag_amount, amount,
+ lead(x.amount,2) over(order by x.payment_date asc) as lead_amount
+ from(
+	select date_format(payment_date, '%y-%m-%d') as payment_date,
+    sum(amount) as amount
+    from payment group by date_format(payment_date, '%y-%m-%d')) as x
+order by x.payment_date;
+
+
+-- CUME_DIST 함수로 누적 분폿값 계산
+SELECT x.customer_id, x.amount, cume_dist() over(order by x.amount desc)
+from(
+	select customer_id, sum(amount) as amount
+    from payment group by customer_id) as x
+order by x.amount desc;
+
+-- percent_rank함수로 상위 분포 순위를 계산
+SELECT x.customer_id, x.amount, percent_rank() over(order by x.amount desc)
+from(
+	select customer_id, sum(amount) as amount
+    from payment group by customer_id) as x
+order by x.amount desc;
+
+-- FIRST_VALUE함수로 가장 높은 값 조회
+select x.payment_date, x.amount,
+	FIRST_VALUE(x.amount) over(order by x.payment_date ) as f_value,
+	LAST_value(x.amount) over(order by x.payment_date range between unbounded preceding and unbounded following) as l_value,
+     x.amount-first_value(x.amount) over(order by x.payment_date) as increase_amount
+ from(
+	select date_format(payment_date, '%y-%m-%d') as payment_date,
+    sum(amount) as amount
+    from payment group by date_format(payment_date, '%y-%m-%d')) as x
+order by x.payment_date;
